@@ -106,7 +106,6 @@ def telegram_webhook():
         await telegram_app.process_update(update)
 
     loop.run_until_complete(run_update())
-    loop.close()
     return "OK"
 
 async def set_webhook():
