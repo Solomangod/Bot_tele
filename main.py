@@ -115,6 +115,7 @@ def index():
 
 
 
+
 @app.route(f"/webhook/{WEBHOOK_SECRET}", methods=["POST"])
 def telegram_webhook():
     update = Update.de_json(request.get_json(force=True), telegram_app.bot)
@@ -133,6 +134,7 @@ def telegram_webhook():
 
 
 
+
 async def set_webhook():
     url = f"{BASE_URL}/webhook/{WEBHOOK_SECRET}"
     await telegram_app.bot.set_webhook(url)
@@ -140,6 +142,7 @@ async def set_webhook():
 
 if __name__ == "__main__":
     asyncio.run(set_webhook())
+    asyncio.run(telegram_app.initialize())
     asyncio.run(telegram_app.initialize())
     asyncio.run(telegram_app.initialize())
     port = int(os.environ.get("PORT", 5000))
