@@ -89,15 +89,15 @@ app_bot.add_handler(CommandHandler("start", start))
 app_bot.add_handler(CommandHandler("stop", stop))
 app_bot.add_handler(MessageHandler(filters.Document.ALL, handle_document))
 
-app = Flask(__name__)
+app = Flask(__name__)  # Đổi tên app chuẩn cho Render
 
-@flask_app.route(f"/webhook/{WEBHOOK_SECRET}", methods=["POST"])
+@app.route(f"/webhook/{WEBHOOK_SECRET}", methods=["POST"])
 def webhook():
     update = Update.de_json(request.get_json(force=True), app_bot.bot)
     app_bot.update_queue.put_nowait(update)
     return "OK"
 
-@flask_app.route("/", methods=["GET"])
+@app.route("/", methods=["GET"])
 def home():
     return "✅ Bot đang chạy (webhook)."
 
