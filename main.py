@@ -98,7 +98,10 @@ def index():
 @app.route(f"/webhook/{WEBHOOK_SECRET}", methods=["POST"])
 def telegram_webhook():
     update = Update.de_json(request.get_json(force=True), telegram_app.bot)
-    asyncio.ensure_future(telegram_app.process_update(update))
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(telegram_app.process_update(update))
+    loop.close()
     return "OK"
 
 async def set_webhook():
