@@ -1,6 +1,7 @@
 
 import os
 import asyncio
+import threading
 from flask import Flask, request
 from telegram import Update, InputFile
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
@@ -87,13 +88,23 @@ async def handle_excel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_document(document=InputFile(output, filename="Checked_Results.xlsx"))
     user_data.pop(chat_id, None)
 
+loop = asyncio.new_event_loop()
+threading.Thread(target=loop.run_forever, daemon=True).start()
+
 telegram_app.add_handler(CommandHandler("start", start))
+loop = asyncio.new_event_loop()
+threading.Thread(target=loop.run_forever, daemon=True).start()
+
 telegram_app.add_handler(CommandHandler("stop", stop))
+loop = asyncio.new_event_loop()
+threading.Thread(target=loop.run_forever, daemon=True).start()
+
 telegram_app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
 
 @app.route("/")
 def index():
     return "✅ Bot Telegram đang chạy bằng webhook trên Flask!"
+
 
 
 @app.route(f"/webhook/{WEBHOOK_SECRET}", methods=["POST"])
@@ -103,13 +114,15 @@ def telegram_webhook():
     async def run_update():
         await telegram_app.process_update(update)
 
+    future = asyncio.run_coroutine_threadsafe(run_update(), loop)
     try:
-        asyncio.run(run_update())
-    except RuntimeError as exc:
-        print("⚠️ RuntimeError:", exc)
+        future.result()
+    except Exception as e:
+        print("❌ Error in coroutine:", e)
         return "Error", 500
 
     return "OK"
+
 
 
 async def set_webhook():
