@@ -95,17 +95,22 @@ telegram_app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
 def index():
     return "✅ Bot Telegram đang chạy bằng webhook trên Flask!"
 
+
 @app.route(f"/webhook/{WEBHOOK_SECRET}", methods=["POST"])
 def telegram_webhook():
     update = Update.de_json(request.get_json(force=True), telegram_app.bot)
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
 
     async def run_update():
         await telegram_app.process_update(update)
 
-    loop.run_until_complete(run_update())
+    try:
+        asyncio.run(run_update())
+    except RuntimeError as exc:
+        print("⚠️ RuntimeError:", exc)
+        return "Error", 500
+
     return "OK"
+
 
 async def set_webhook():
     url = f"{BASE_URL}/webhook/{WEBHOOK_SECRET}"
