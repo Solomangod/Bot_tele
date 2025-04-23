@@ -89,7 +89,7 @@ app_bot.add_handler(CommandHandler("start", start))
 app_bot.add_handler(CommandHandler("stop", stop))
 app_bot.add_handler(MessageHandler(filters.Document.ALL, handle_document))
 
-flask_app = Flask(__name__)
+app = Flask(__name__)
 
 @flask_app.route(f"/webhook/{WEBHOOK_SECRET}", methods=["POST"])
 def webhook():
