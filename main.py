@@ -101,15 +101,13 @@ def webhook():
 def home():
     return "✅ Bot đang chạy (webhook)."
 
-async def set_webhook():
+async def on_startup(application):
     webhook_url = f"{BASE_URL}/webhook/{WEBHOOK_SECRET}"
-    await app_bot.bot.set_webhook(webhook_url)
-    print("🌐 Webhook URL:", webhook_url)
+    await application.bot.set_webhook(webhook_url)
+    print("🌐 Webhook URL set:", webhook_url)
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(set_webhook())
-
+    app_bot.post_init = on_startup
     app_bot.run_webhook(
         listen="0.0.0.0",
         port=int(os.environ.get("PORT", 5000)),
