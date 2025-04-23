@@ -1,5 +1,6 @@
 
 import os
+import asyncio
 from flask import Flask, request
 from telegram import Update, InputFile
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
@@ -15,7 +16,8 @@ BASE_URL = os.getenv("BASE_URL")
 if not TOKEN or not BASE_URL:
     raise RuntimeError("BOT_TOKEN và BASE_URL cần được khai báo trong .env")
 
-app_bot = Application.builder().token(TOKEN).build()
+app = Flask(__name__)
+telegram_app = Application.builder().token(TOKEN).build()
 user_data = {}
 stop_flags = {}
 
@@ -85,31 +87,24 @@ async def handle_excel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_document(document=InputFile(output, filename="Checked_Results.xlsx"))
     user_data.pop(chat_id, None)
 
-app_bot.add_handler(CommandHandler("start", start))
-app_bot.add_handler(CommandHandler("stop", stop))
-app_bot.add_handler(MessageHandler(filters.Document.ALL, handle_document))
+telegram_app.add_handler(CommandHandler("start", start))
+telegram_app.add_handler(CommandHandler("stop", stop))
+telegram_app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
 
-app = Flask(__name__)  # Đổi tên app chuẩn cho Render
+@app.route("/")
+def index():
+    return "✅ Bot Telegram đang chạy bằng webhook trên Flask!"
 
 @app.route(f"/webhook/{WEBHOOK_SECRET}", methods=["POST"])
-def webhook():
-    update = Update.de_json(request.get_json(force=True), app_bot.bot)
-    app_bot.update_queue.put_nowait(update)
+def telegram_webhook():
+    update = Update.de_json(request.get_json(force=True), telegram_app.bot)
+    asyncio.ensure_future(telegram_app.process_update(update))
     return "OK"
 
-@app.route("/", methods=["GET"])
-def home():
-    return "✅ Bot đang chạy (webhook)."
-
-async def on_startup(application):
-    webhook_url = f"{BASE_URL}/webhook/{WEBHOOK_SECRET}"
-    await application.bot.set_webhook(webhook_url)
-    print("🌐 Webhook URL set:", webhook_url)
+async def set_webhook():
+    url = f"{BASE_URL}/webhook/{WEBHOOK_SECRET}"
+    await telegram_app.bot.set_webhook(url)
+    print("🌐 Đã đăng ký Webhook:", url)
 
 if __name__ == "__main__":
-    app_bot.post_init = on_startup
-    app_bot.run_webhook(
-        listen="0.0.0.0",
-        port=int(os.environ.get("PORT", 5000)),
-        webhook_url=f"{BASE_URL}/webhook/{WEBHOOK_SECRET}"
-    )
+    asyncio.run(set_webhook())
