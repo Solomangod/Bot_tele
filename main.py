@@ -2,6 +2,7 @@
 import os
 import asyncio
 import threading
+import threading
 from flask import Flask, request
 from telegram import Update, InputFile
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
@@ -50,6 +51,12 @@ async def handle_txt(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"✅ Đã nhận {len(keywords)} từ khóa. Gửi file Excel tiếp theo.")
 
 async def handle_excel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.message.chat_id
+    message_id = update.message.message_id
+    # ⛔ Tránh xử lý lại cùng 1 message
+    if user_data.get(chat_id, {}).get("last_processed_message") == message_id:
+        return
+    user_data.setdefault(chat_id, {})["last_processed_message"] = message_id
     chat_id = update.message.chat_id
     stop_flags[chat_id] = False
     if chat_id not in user_data:
@@ -107,21 +114,22 @@ def index():
 
 
 
+
 @app.route(f"/webhook/{WEBHOOK_SECRET}", methods=["POST"])
 def telegram_webhook():
     update = Update.de_json(request.get_json(force=True), telegram_app.bot)
 
-    async def run_update():
+    async def process():
         await telegram_app.process_update(update)
 
-    future = asyncio.run_coroutine_threadsafe(run_update(), loop)
     try:
-        future.result()
+        asyncio.run_coroutine_threadsafe(process(), loop).result()
     except Exception as e:
-        print("❌ Error in coroutine:", e)
-        return "Error", 500
+        print(f"❌ Error while processing update: {e}")
+        return "ERROR", 500
 
     return "OK"
+
 
 
 
@@ -132,6 +140,7 @@ async def set_webhook():
 
 if __name__ == "__main__":
     asyncio.run(set_webhook())
+    asyncio.run(telegram_app.initialize())
     asyncio.run(telegram_app.initialize())
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
