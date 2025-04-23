@@ -102,7 +102,6 @@ def telegram_webhook():
     asyncio.set_event_loop(loop)
 
     async def run_update():
-        await telegram_app.initialize()
         await telegram_app.process_update(update)
 
     loop.run_until_complete(run_update())
@@ -115,5 +114,6 @@ async def set_webhook():
 
 if __name__ == "__main__":
     asyncio.run(set_webhook())
+    asyncio.run(telegram_app.initialize())
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
