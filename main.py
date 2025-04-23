@@ -100,7 +100,12 @@ def telegram_webhook():
     update = Update.de_json(request.get_json(force=True), telegram_app.bot)
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    loop.run_until_complete(telegram_app.process_update(update))
+
+    async def run_update():
+        await telegram_app.initialize()
+        await telegram_app.process_update(update)
+
+    loop.run_until_complete(run_update())
     loop.close()
     return "OK"
 
